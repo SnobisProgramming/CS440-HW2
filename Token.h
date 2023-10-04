@@ -1,151 +1,142 @@
-/*
-Building a simple arithmetic parser.
-Using simple top-down strategy.
-Andrew Shallue, Fall 2023
+/* Code for a basic lexer.  Copied from Dragon Book, page 81
+Andrew Shallue, August 2023
 */
 
 #include <iostream>
-
-#include "Token.h"
-#include "Node.h"
-#include "PredParser.h"
+#include <string>
 
 using namespace std;
 
-int main(){
+#ifndef TOKEN_H
+#define TOKEN_H
 
-    cout << "Hello World\n";
+// base class that has only a tag, no values.  Tags are represented as integers.
+class Token{
+    public:
+        int tag;
+        Token(){ tag = 0; }
+        Token(int t){ tag = t; }
 
-    // create a token list for 5 + 2 * 3
-    vector<Token*> toks1;
-    toks1.push_back(new Num(5));
-    toks1.push_back(new Arithop("+"));
-    toks1.push_back(new Num(2));
-    toks1.push_back(new Arithop("*"));
-    toks1.push_back(new Num(3));
+        // print will print <tag> to cout.  toString will create a string with just the tag
+        virtual void print(){ std::cout << "<" << tag << ">"; }
 
-    cout << "Toks1: ";
-    for(long i = 0; i < toks1.size(); i++){
-        toks1.at(i)->print();
-        cout << " ";
-    }
-    cout << "\n";
+        // two tokens are equal if the tag is the same
+        virtual bool equal(Token &other){ return tag == other.tag; }
+};
 
-    // now test predictive parsing
-    PredParser pp1 = PredParser(toks1);
-    pp1.top_down_parse();
-    pp1.print();
-    cout << "\n";
+// creating tags by assigning unique numbers to keywords
+// could also do #define NUM 256.  Currently missing static
+#define NUM 256
+#define ID 257
+#define TRUE 258
+#define FALSE 259
+#define IF 260
+#define ELSE 261
+#define RELOP 270
+#define ARITHOP 271
+#define ERROR 0
+#define PUNCT 300
 
-    // test 2:  5 * x + 2 * 3
-    vector<Token*> toks2;
-    toks2.push_back(new Num(5));
-    toks2.push_back(new Arithop("*"));
-    toks2.push_back(new Word(ID, "x"));
-    toks2.push_back(new Arithop("+"));
-    toks2.push_back(new Num(2));
-    toks2.push_back(new Arithop("*"));
-    toks2.push_back(new Num(3));
-    cout << "Toks2: ";
-    for(long i = 0; i < toks2.size(); i++){
-        toks2.at(i)->print();
-        cout << " ";
-    }
-    cout << "\n";
-    
-    PredParser pp2 = PredParser(toks2);
-    pp2.top_down_parse();
-    pp2.print();
-    cout << "\n";
+// two subclasses of Token.  Set the tag, and include an extra piece of information.
+// Help with how to call parent class constructor from: 
+// https://www.tutorialspoint.com/what-are-the-rules-for-calling-the-superclass-constructor-cplusplus
+// Help with downcasting:  https://www.geeksforgeeks.org/dynamic-_cast-in-cpp/
+class Num : public Token{
+    public:
+        double value;
+        Num() : Token() {}
+        Num(double v) : Token(NUM) {
+            value = v;
+        }
 
-    // test 3:  (5 + x) * (5 + y)
-    vector<Token*> toks3;
-    toks3.push_back(new Punct("("));
-    toks3.push_back(new Num(5));
-    toks3.push_back(new Arithop("+"));
-    toks3.push_back(new Word(ID, "x"));
-    toks3.push_back(new Punct(")"));
-    toks3.push_back(new Arithop("*"));
-    toks3.push_back(new Punct("("));
-    toks3.push_back(new Num(5));
-    toks3.push_back(new Arithop("+"));
-    toks3.push_back(new Word(ID, "y"));
-    toks3.push_back(new Punct(")"));
-    cout << "Toks3: ";
-    for(long i = 0; i < toks3.size(); i++){
-        toks3.at(i)->print();
-        cout << " ";
-    }
-    cout << "\n";
+        // print will print <tag, value> to cout.  
+        void print() override{ std::cout << "<" << tag << ", " << value << ">"; }
 
-    PredParser pp3 = PredParser(toks3);
-    pp3.top_down_parse();
-    pp3.print();
-    cout << "\n";
-    cout << pp3.pt.to_string() << "\n";
+        // two nums are equal if the values match.  Note that the tags must match since both are nums
+        // use downcasting to detect if other has type Num.  If downcast fails, no match, return false
+        bool equal(Token &other) override{ 
+            Num* downcast = dynamic_cast<Num*>(&other);
+            if(downcast){
+                return value == downcast->value;
+            }else return false;
+        }
+};
 
-    // test 4:  5 * x
-    vector<Token*> toks4;
-    toks4.push_back(new Num(5));
-    toks4.push_back(new Arithop("*"));
-    toks4.push_back(new Word(ID, "x"));
-    cout << "Toks4: ";
-    for(long i = 0; i < toks4.size(); i++){
-        toks4.at(i)->print();
-        cout << " ";
-    }
-    cout << "\n";
+class Word : public Token{
+    public:
+        string lexeme;
 
-    PredParser pp4 = PredParser(toks4);
-    pp4.top_down_parse();
-    pp4.print();
-    cout << "\n";
-    cout << pp4.pt.to_string() << "\n";
+        Word() : Token() {}
+        Word(int t, string s) : Token(t) { lexeme = s; }
 
-    // test 5: if(x < 3) x + 2 else true
-    vector<Token*> toks5;
-    toks5.push_back(new Word(IF, "if"));
-    toks5.push_back(new Punct("("));
-    toks5.push_back(new Word(ID, "x"));
-    toks5.push_back(new Relop("<"));
-    toks5.push_back(new Num(3));
-    toks5.push_back(new Punct(")"));
-    toks5.push_back(new Word(ID, "x"));
-    toks5.push_back(new Arithop("+"));
-    toks5.push_back(new Num(2));
-    toks5.push_back(new Word(ELSE, "else"));
-    toks5.push_back(new Word(TRUE, "true"));
-    cout << "Toks5: ";
-    for(long i = 0; i < toks5.size(); i++){
-        toks5.at(i)->print();
-        cout << " ";
-    }
-    cout << "\n";
+        // print will print <tag, value> to cout.  
+        void print() override{ std::cout << "<" << tag << ", " << lexeme << ">"; }
 
-    PredParser pp5 = PredParser(toks5);
-    pp5.top_down_parse();
-    pp5.print();
-    cout << "\n";
-    cout << pp5.pt.to_string() << "\n";
+        // two words are equal if tag and value both match.  Same downcast trick
+        bool equal(Token &other) override { 
+            Word* downcast = dynamic_cast<Word*>(&other);
+            if(downcast){
+                return lexeme == downcast->lexeme && tag == downcast->tag;
+            }else return false;
+        }
+};
 
-    // test 6: (2 * 2 * 2   should give a parse error
-    vector<Token*> toks6;
-    toks6.push_back(new Punct("("));
-    toks6.push_back(new Num(2));
-    toks6.push_back(new Arithop("*"));
-    toks6.push_back(new Num(2));
-    toks6.push_back(new Arithop("*"));
-    toks6.push_back(new Num(2));
+class Relop : public Token{
+    public:
+        string op;
 
-    cout << "Toks6: ";
-    for(long i = 0; i < toks6.size(); i++){
-        toks6.at(i)->print();
-        cout << " ";
-    }
-    cout << "\n";
+        Relop() : Token() {}
+        Relop(string o) : Token(RELOP) { op = o; }
 
-    PredParser pp6 = PredParser(toks6);
-    pp6.top_down_parse();
-    pp6.print();
+        // print will print <tag, value> to cout.  
+        void print() override{ std::cout << "<" << tag << ", " << op << ">"; }
 
-}
+        // two Relops are equal if values match.  Same downcast trick
+        bool equal(Token &other) override { 
+            Relop* downcast = dynamic_cast<Relop*>(&other);
+            if(downcast){
+                return op == downcast->op;
+            }else return false;
+        }
+};
+
+class Arithop : public Token{
+    public:
+        string op;
+
+        Arithop() : Token() {}
+        Arithop(string o) : Token(ARITHOP) { op = o; }
+
+        // print will print <tag, value> to cout.  
+        void print() override{ std::cout << "<" << tag << ", " << op << ">"; }
+
+        // two Relops are equal if values match.  Same downcast trick
+        bool equal(Token &other) override { 
+            Arithop* downcast = dynamic_cast<Arithop*>(&other);
+            if(downcast){
+                return op == downcast->op;
+            }else return false;
+        }
+};
+
+class Punct : public Token{
+    public:
+        string symbol;
+
+        Punct() : Token() {}
+        Punct(string p) : Token(PUNCT) { symbol = p; }
+
+        // print will print <tag, value> to cout.  
+        void print() override{ std::cout << "<" << tag << ", " << symbol << ">"; }
+
+        // two Relops are equal if values match.  Same downcast trick
+        bool equal(Token &other) override { 
+            Punct* downcast = dynamic_cast<Punct*>(&other);
+            if(downcast){
+                return symbol == downcast->symbol;
+            }else return false;
+        }
+};
+
+
+#endif
