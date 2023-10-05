@@ -45,21 +45,35 @@ void PredParser::top_down_parse() {
 
 // Stmt checks for if.  If not found, go with Rel production instead
 Node* PredParser::Stmt() {
-    // creation of the parent node for the statement
+    // Creation of the parent node for the statement
     Node* output_tree = new Node("S");
+
+    // This variable will store what lookahead points at, so I don't have dereference what lookahead points at.
+    // Intended to increase clarity of the code and help me not mix up my pointers/dereferences.
+    Token* currenTok = *lookahead;
           
         // Check if lookahead token is "if"
-        if ((*lookahead)->tag() == IF) {
+        if ((currentTok)->tag == IF) {
             // Create new node for the if statement
             Node* ifStmt = new Node("if");
             // Lookahead
             lookahead++;
 
+            // Update currentTok
+            correntTok = *lookahead;
+
             // According to our grammar, (Rel) is next
             // Thus, check for (
-            if ((*lookahead)->lexeme == "(") {
-                // Lookahead upon confirming (
+            // Due to a discussion on polymorphism, I must cast Punct* and check for symbol. Also ensuring tag is PUNCT to be fully sure.
+            if ((currentTok)->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
+                // Create new node for ( for ifStmt
+                Node* leftParen = new Node("(");
+                ifStmt->children.push_back(leftParen);
+
+                // Lookahead
                 lookahead++;
+                // Update currentTok
+                correntTok = *lookahead;
 
                 // We should have Rel; parse Rel
                 Node* relNode = Relop();
@@ -69,9 +83,15 @@ Node* PredParser::Stmt() {
 
                 // According to our grammar, (Rel) ends in a )
                 // Thus, check for )
-                if ((*lookahead)->lexeme == ")") {
-                // Lookahead upon confirming )
+                // Due to a discussion on polymorphism, I must cast Punct* and check for symbol. Also ensuring tag is PUNCT to be fully sure.
+                if ((currentTok)->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
+                // Create new node for ) for ifStmt
+                Node* leftParen = new Node(")");
+                ifStmt->children.push_back(leftParen);
+                
+                // Lookahead upon confirming ); Update currentTok
                 lookahead++;
+                correntTok = *lookahead;
 
                 // We should have (then) Stmt; parse Stmt
                 Node* thenStmt = Stmt();
@@ -80,10 +100,10 @@ Node* PredParser::Stmt() {
                 ifStmt->children.push_back(thenStmt);
 
                 // Check for else
-                // question - is else required in our grammar?
                     if ((*lookahead)->tag == ELSE) {
-                        // Look ahead
+                        // Look ahead; Update currentTok
                         lookahead++;
+                        correntTok = *lookahead;
 
                         // We should have Stmt; parse Stmt
                         Node* elseStmt = Stmt();
@@ -92,24 +112,23 @@ Node* PredParser::Stmt() {
                         ifStmt->children.push_back(elseStmt)
                 }
 
-                    // Finished parsing ifStmt
+                    // Finished parsing ifStmt. This should have S->if...
+                    // Check this in office hours if not tested by fri
                     return ifStmt;
             
                 }
                 // case: ) missing
                 else {
-                    // error
+                    std::cout << "Error: Missing ) in ifStmt";
                 }
             }
                 // case: ( missing
                 else {
-                    // error
+                    std::cout << "Error: Missing ( in ifStmt";
             }
         }
-    // other cases, such as Rel
-
-    // Return parent node for Stmt
-    return output_tree;
+    // Otherwise, currentTok is not "if", thus return Rel
+    return Rel();
 }
 
 // Rel only has one choice, to go to Exp Relop
