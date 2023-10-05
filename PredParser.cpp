@@ -45,7 +45,7 @@ void PredParser::top_down_parse() {
 
 // Stmt checks for if.  If not found, go with Rel production instead
 Node* PredParser::Stmt() {
-    // Creation of the parent node for the statement
+    // Create parent node for the statement
     Node* output_tree = new Node("S");
 
     // This variable will store what lookahead points at, so I don't have dereference what lookahead points at.
@@ -53,7 +53,7 @@ Node* PredParser::Stmt() {
     Token* currenTok = *lookahead;
           
         // Check if lookahead token is "if"
-        if ((currentTok)->tag == IF) {
+        if (currentTok->tag == IF) {
             // Create new node for the if statement
             Node* ifStmt = new Node("if");
             // Lookahead
@@ -65,7 +65,7 @@ Node* PredParser::Stmt() {
             // According to our grammar, (Rel) is next
             // Thus, check for (
             // Due to a discussion on polymorphism, I must cast Punct* and check for symbol. Also ensuring tag is PUNCT to be fully sure.
-            if ((currentTok)->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
+            if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
                 // Create new node for ( for ifStmt
                 Node* leftParen = new Node("(");
                 ifStmt->children.push_back(leftParen);
@@ -84,10 +84,10 @@ Node* PredParser::Stmt() {
                 // According to our grammar, (Rel) ends in a )
                 // Thus, check for )
                 // Due to a discussion on polymorphism, I must cast Punct* and check for symbol. Also ensuring tag is PUNCT to be fully sure.
-                if ((currentTok)->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
+                if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
                 // Create new node for ) for ifStmt
-                Node* leftParen = new Node(")");
-                ifStmt->children.push_back(leftParen);
+                Node* rightParen = new Node(")");
+                ifStmt->children.push_back(rightParen);
                 
                 // Lookahead upon confirming ); Update currentTok
                 lookahead++;
@@ -100,7 +100,7 @@ Node* PredParser::Stmt() {
                 ifStmt->children.push_back(thenStmt);
 
                 // Check for else
-                    if ((*lookahead)->tag == ELSE) {
+                    if (currentTok->tag == ELSE) {
                         // Look ahead; Update currentTok
                         lookahead++;
                         correntTok = *lookahead;
@@ -150,7 +150,101 @@ Node* PredParser::Term();
 Node* PredParser::Mul();
 
 //If lookahead is num or var, return leaf node, otherwise return tree corresponding to (Exp)
-Node* PredParser::Factor();
+Node* PredParser::Factor() {
+    // Create currenTok to avoid pointer/dereference confusion
+    Token* currentTok = *lookahead;
+    
+    // Create parent node for Factor
+    Node* factorNode = new Node(F);
+
+    // note: perhaps a helper function of some sort would be of use. believe we discussed this in class 10/4
+
+    // Case: Factor is a num
+    if (currentTok->tag == NUM) {
+        // Create new node for num
+        // Aware that I can do this on one line, but doing it on two lines helps me understand what's going on.
+        Node* numNode = new Node("num");
+        // Add numNode as a child of F
+        factorNode->children.push_back(numNode);
+        
+        // Lookahead; Update currentTok
+        // can just do this at the end instead of repeating these two lines of code; will implement later
+        lookahead++;
+        currentTok = *lookahead;
+    }
+
+    // Case: Factor is a var
+    else if (currentTok->tag == ID) {
+        // Create new node for var
+        Node* varNode = new Node("id");
+        // Add varNode as child of F
+        factorNode->children.push_back(varNode);
+    }
+
+    // Case: Factor is true
+    else if (currentTok->tag == TRUE) {
+        // Create new node for true
+        Node* trueNode = new Node("true");
+        // Add trueNode as child of F
+        factorNode->children.push_back(trueNode);
+    }
+
+    // Case: Factor is false
+    else if (currentTok->tag == FALSE) {
+        // Create new node for false
+        Node* falseNode = new Node("false");
+        // Add falseNode as child of F
+        factorNode->children.push_back(falseNode);
+    }
+
+    // Case: Factor is (Exp)
+    // Ensure currentTok is (
+    else if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
+        // Note: Need to be careful when I lookahead if I do so after all these ifs.
+        // Create new node for ( for F
+        Node* leftParen = new Node("(");
+        // Add leftParen as child of F
+        factorNode->children.push_back(leftParen);
+
+        // Look ahead; Update currentTok
+        lookahead++;
+        currentTok = lookahead*;
+
+        // Now we call Expr()
+        // Note: so we should have F->(E..., correct?
+        
+        //return Expr();
+        // wait, the above line is probably wrong. need to do this: (?)
+        Node* expNode = Exp();
+        // after this, we should be done parsing Expr
+        // Case: Ensure currentTok is )
+        if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
+            // Look ahead; Update currentTok
+            // Note: we will no longer use currentTok in this scope - unneeded to update it? good practice to do so regardless?
+            lookahead++;
+            currentTok = lookahead*;
+
+            // see line 217, 218. if those are correct, we need to add that as a child of F
+            factorNode->children.push_back(expNode);
+
+            // Create new node for ) for F
+            Node* rightParen = new Node("(");
+            // Add leftParen as child of F
+            factorNode->children.push_back(rightParen);
+        }
+
+        // Case: Missing closing paren
+        // Note: Or maybe expr is bad? Probably not - the error would be in there (once I implent it), right?
+        else {
+            std::cout << "Error: Missing ), or maybe Expr is bad in Factor.";
+        }
+    }
+    // Case: Invalid factor inputted
+    else {
+        std::cout << "Error: Invalid factor inputted for Factor.";
+    }
+    return factorNode;
+}
 
 /* Here is the grammar that this parser will parse:
 Stmt -> Rel | if ( Rel ) Stmt else Stmt 
