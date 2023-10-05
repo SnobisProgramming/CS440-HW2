@@ -72,14 +72,14 @@ class ParseTree{
     }
 
     // rule of 3 for ParseTree.  Simply apply the Node function to the root
-    ParseTree(ParseTree &other){ 
+    ParseTree(const ParseTree &other){ 
       // copy the other tree if it is not null
       if(other.root){
         Node* new_tree = rec_copy(other.root);
         root = new_tree;
       }else root = nullptr;
     }
-    ParseTree& operator=(ParseTree& other){
+    ParseTree& operator=(const ParseTree& other){
       ParseTree new_pt;
 
       if(other.root){
