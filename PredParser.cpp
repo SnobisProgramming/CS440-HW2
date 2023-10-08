@@ -33,6 +33,7 @@ void PredParser::top_down_parse() {
 
 // Helper function to update currentTok.
 // Also helps avoiding scope issues (where we'd have to define currentTok multiple times below)
+// Choosing to use this at the end of each function except for ifStmt
 void updateCurrentTok() {
     if (lookahead != toks.end()) {
         // With this order, the function can be called with currenTok being at the start.
@@ -60,6 +61,8 @@ Node* PredParser::Stmt() {
     // Create parent node for the statement
     Node* output_tree = new Node("S");
 
+    // Initialize currentTok at beginning
+    // Should be Rel or if
     updateCurrentTok();
           
         // Check if lookahead token is "if"
@@ -68,6 +71,7 @@ Node* PredParser::Stmt() {
             Node* ifStmt = new Node("if");
 
             // Update currentTok
+            // Should be (
             updateCurrentTok();
 
             // According to our grammar, (Rel) is next
@@ -78,7 +82,7 @@ Node* PredParser::Stmt() {
                 Node* leftParen = new Node("(");
                 ifStmt->children.push_back(leftParen);
 
-                // Update currentTok
+                // Update currentTok, should be Rel
                 updateCurrentTok();
 
                 // We should have Rel; parse Rel
@@ -86,6 +90,9 @@ Node* PredParser::Stmt() {
 
                 // Rel is a child of an if statement
                 ifStmt->children.push_back(relNode);
+
+                // Update currentTok, should be )
+                updateCurrentTok();
 
                 // According to our grammar, (Rel) ends in a )
                 // Thus, check for )
@@ -95,7 +102,7 @@ Node* PredParser::Stmt() {
                 Node* rightParen = new Node(")");
                 ifStmt->children.push_back(rightParen);
                 
-                // Update currentTok
+                // Update currentTok, should be else
                 updateCurrentTok();
 
                 // We should have (then) Stmt; parse Stmt
@@ -104,17 +111,21 @@ Node* PredParser::Stmt() {
                 // (then) Stmt is a child of an if statement
                 ifStmt->children.push_back(thenStmt);
 
-                // Check for else
-                    if (currentTok->tag == ELSE) {
-                        // Update currentTok
-                        updateCurrentTok();
+                // Think this is old code, keeping around for testing
+                // // Check for else
+                //     if (currentTok->tag == ELSE) {
+                //         // We should have Stmt; parse Stmt
+                //         Node* elseStmt = Stmt();
 
-                        // We should have Stmt; parse Stmt
-                        Node* elseStmt = Stmt();
+                //         // (else) Stmt is a child of an if statement
+                //         ifStmt->children.push_back(elseStmt)
 
-                        // (else) Stmt is a child of an if statement
-                        ifStmt->children.push_back(elseStmt)
-                }
+                //         // Update currentTok, should be Stmt
+                //         updateCurrentTok();
+                //     else {
+                //         std::cout << "Error: Missing Else in Stmt";
+                //     }
+                // }
 
                     // Finished parsing ifStmt
                     return ifStmt;
@@ -147,7 +158,24 @@ Node* PredParser::Exp();
 Node* PredParser::Add();
 
 // If Term is current nonterminal, only one production to choose, namely Factor Mul
-Node* PredParser::Term();
+Node* PredParser::Term() {
+    // Update currentTok, should be 
+    // Create paren node for Term
+    Node* termNode = new Node("T");
+
+    // Parse Factor
+    Node* factorNode = Factor();
+
+    // Add Factor node as a child of T
+    termNode->children.push_back(factorNode);
+
+    // Update currentTok, should be Mul
+
+    // Parse Mul
+    Node* mulNode = Mul();
+
+
+}
 
 // For Mul, apply * Factor Mul or / Factor Mul depending on lookahead, o/w do epsilon
 Node* PredParser::Mul() {
