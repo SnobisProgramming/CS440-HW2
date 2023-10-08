@@ -68,7 +68,7 @@ Node* PredParser::Stmt() {
             Node* ifStmt = new Node("if");
 
             // Update currentTok
-            updateCurrentTok;
+            updateCurrentTok();
 
             // According to our grammar, (Rel) is next
             // Thus, check for (
@@ -79,7 +79,7 @@ Node* PredParser::Stmt() {
                 ifStmt->children.push_back(leftParen);
 
                 // Update currentTok
-                updateCurrentTok;
+                updateCurrentTok();
 
                 // We should have Rel; parse Rel
                 Node* relNode = Relop();
@@ -96,7 +96,7 @@ Node* PredParser::Stmt() {
                 ifStmt->children.push_back(rightParen);
                 
                 // Update currentTok
-                updateCurrentTok;
+                updateCurrentTok();
 
                 // We should have (then) Stmt; parse Stmt
                 Node* thenStmt = Stmt();
@@ -107,7 +107,7 @@ Node* PredParser::Stmt() {
                 // Check for else
                     if (currentTok->tag == ELSE) {
                         // Update currentTok
-                        updateCurrentTok;
+                        updateCurrentTok();
 
                         // We should have Stmt; parse Stmt
                         Node* elseStmt = Stmt();
@@ -116,8 +116,7 @@ Node* PredParser::Stmt() {
                         ifStmt->children.push_back(elseStmt)
                 }
 
-                    // Finished parsing ifStmt. This should have S->if...
-                    // Check this in office hours if not tested by fri
+                    // Finished parsing ifStmt
                     return ifStmt;
             
                 }
@@ -153,13 +152,40 @@ Node* PredParser::Term();
 // For Mul, apply * Factor Mul or / Factor Mul depending on lookahead, o/w do epsilon
 Node* PredParser::Mul() {
     // Create parent node for Mul
-    Node* factorNode = new Node("M");
+    Node* mulNode = new Node("M");
 
     // Case: Multiplication or division
     // These two cases would have the same output, so we can make one if statement for them
-    if (currentTok->tag() == PUNCT && (dynamic_cast<Punct*>(currentTok)-> "*" || dynamic_cast<Punct*>(currentTok)->"/")) {
-        
+    if (currentTok->tag() == PUNCT && (dynamic_cast<Arithop*>(currentTok)-> "*" || dynamic_cast<Arithop*>(currentTok)->"/")) {
+        // Create new node for operator
+        Node* opNode = new Node(currentToken->op);
+
+        // Add opNode as a child of M
+        mulNode->children.push_back(opNode);
+
+        // Update currentTok
+        updateCurrentTok();
+
+        // Now parse factor
+        Node* factorNode = Factor();
+
+        // Add Factor node as child of M
+        mulNode->children.push_back(factorNode);
+
+        // Update currentTok
+        updateCurrentTok();
+
+        // Recursively parse Mul as our grammar states
+        // using nextMulNode as the var name to indicate it's the Mul inside the grammar
+        Node* nextMulNode = Mul();
+
+        // Add nextMulNode as a child of current mulNode
+        mulNode->children.push_back(nextMulNode);
     }
+
+    // Finished parsing Mul
+    // Note: If epsilon case, the above if won't be met, simply returning "M". Correct implementation?
+    return mulNode;
 }
 
 //If lookahead is num or var, return leaf node, otherwise return tree corresponding to (Exp)
@@ -177,7 +203,7 @@ Node* PredParser::Factor() {
         factorNode->children.push_back(numNode);
         
        // Update currentTok
-       updateCurrentTok;
+       updateCurrentTok();
     }
 
     // Case: Factor is a var
@@ -188,7 +214,7 @@ Node* PredParser::Factor() {
         factorNode->children.push_back(varNode);
 
         // Update currentTok
-        updateCurrentTok;
+        updateCurrentTok();
     }
 
     // Case: Factor is true
@@ -199,7 +225,7 @@ Node* PredParser::Factor() {
         factorNode->children.push_back(trueNode);
 
         // Update currentTok
-        updateCurrentTok;
+        updateCurrentTok();
     }
 
     // Case: Factor is false
@@ -210,7 +236,7 @@ Node* PredParser::Factor() {
         factorNode->children.push_back(falseNode);
 
         // Update currentTok
-        updateCurrentTok;
+        updateCurrentTok();
     }
 
     // ** uncomment after implementing + testing exp **
@@ -225,7 +251,7 @@ Node* PredParser::Factor() {
     //     factorNode->children.push_back(leftParen);
 
     //     // Update currentTok
-    //     updateCurrentTok;
+    //     updateCurrentTok();
 
     //     // Now we call Expr()
     //     // Note: so we should have F->(E..., correct?
@@ -237,7 +263,7 @@ Node* PredParser::Factor() {
     //     // Case: Ensure currentTok is )
     //     if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
     //        // Update currentTok
-    //        updateCurrentTok;
+    //        updateCurrentTok();
 
     //         // see line 217, 218. if those are correct, we need to add that as a child of F
     //         factorNode->children.push_back(expNode);
