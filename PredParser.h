@@ -14,6 +14,7 @@ class PredParser {
     public:
         PredParser();
         PredParser(std::vector<Token*> &input_toks);
+        void updateCurrentTok();
         void print();
         void top_down_parse();
         Node* Stmt();

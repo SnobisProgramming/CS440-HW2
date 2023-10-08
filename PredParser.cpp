@@ -31,6 +31,18 @@ void PredParser::top_down_parse() {
 
 }
 
+// Helper function to update currentTok.
+// Also helps avoiding scope issues (where we'd have to define currentTok multiple times below)
+void updateCurrentTok() {
+    if (lookahead != toks.end()) {
+        // With this order, the function can be called with currenTok being at the start.
+        currenTok = *lookahead;
+        lookahead++;
+    }
+    else {
+        print("Error: Tried to iterate at end of tok list")
+    }
+}
 // match is for leaf tokens
 // check if lookahead not at end, check if lookahead is correct token, if so create leaf and push ahead
 // never mind, not implemented.  I would need a million cases to cast appropriate token depending on tag
@@ -48,19 +60,15 @@ Node* PredParser::Stmt() {
     // Create parent node for the statement
     Node* output_tree = new Node("S");
 
-    // This variable will store what lookahead points at, so I don't have dereference what lookahead points at.
-    // Intended to increase clarity of the code and help me not mix up my pointers/dereferences.
-    Token* currenTok = *lookahead;
+    updateCurrentTok();
           
         // Check if lookahead token is "if"
         if (currentTok->tag == IF) {
             // Create new node for the if statement
             Node* ifStmt = new Node("if");
-            // Lookahead
-            lookahead++;
 
             // Update currentTok
-            correntTok = *lookahead;
+            updateCurrentTok;
 
             // According to our grammar, (Rel) is next
             // Thus, check for (
@@ -70,10 +78,8 @@ Node* PredParser::Stmt() {
                 Node* leftParen = new Node("(");
                 ifStmt->children.push_back(leftParen);
 
-                // Lookahead
-                lookahead++;
                 // Update currentTok
-                correntTok = *lookahead;
+                updateCurrentTok;
 
                 // We should have Rel; parse Rel
                 Node* relNode = Relop();
@@ -89,9 +95,8 @@ Node* PredParser::Stmt() {
                 Node* rightParen = new Node(")");
                 ifStmt->children.push_back(rightParen);
                 
-                // Lookahead upon confirming ); Update currentTok
-                lookahead++;
-                correntTok = *lookahead;
+                // Update currentTok
+                updateCurrentTok;
 
                 // We should have (then) Stmt; parse Stmt
                 Node* thenStmt = Stmt();
@@ -101,9 +106,8 @@ Node* PredParser::Stmt() {
 
                 // Check for else
                     if (currentTok->tag == ELSE) {
-                        // Look ahead; Update currentTok
-                        lookahead++;
-                        correntTok = *lookahead;
+                        // Update currentTok
+                        updateCurrentTok;
 
                         // We should have Stmt; parse Stmt
                         Node* elseStmt = Stmt();
@@ -147,17 +151,22 @@ Node* PredParser::Add();
 Node* PredParser::Term();
 
 // For Mul, apply * Factor Mul or / Factor Mul depending on lookahead, o/w do epsilon
-Node* PredParser::Mul();
+Node* PredParser::Mul() {
+    // Create parent node for Mul
+    Node* factorNode = new Node("M");
+
+    // Case: Multiplication or division
+    // These two cases would have the same output, so we can make one if statement for them
+    if (currentTok->tag() == PUNCT && (dynamic_cast<Punct*>(currentTok)-> "*" || dynamic_cast<Punct*>(currentTok)->"/")) {
+        
+    }
+}
 
 //If lookahead is num or var, return leaf node, otherwise return tree corresponding to (Exp)
 Node* PredParser::Factor() {
-    // Create currenTok to avoid pointer/dereference confusion
-    Token* currentTok = *lookahead;
     
     // Create parent node for Factor
-    Node* factorNode = new Node(F);
-
-    // note: perhaps a helper function of some sort would be of use. believe we discussed this in class 10/4
+    Node* factorNode = new Node("F");
 
     // Case: Factor is a num
     if (currentTok->tag == NUM) {
@@ -167,10 +176,8 @@ Node* PredParser::Factor() {
         // Add numNode as a child of F
         factorNode->children.push_back(numNode);
         
-        // Lookahead; Update currentTok
-        // can just do this at the end instead of repeating these two lines of code; will implement later
-        lookahead++;
-        currentTok = *lookahead;
+       // Update currentTok
+       updateCurrentTok;
     }
 
     // Case: Factor is a var
@@ -179,6 +186,9 @@ Node* PredParser::Factor() {
         Node* varNode = new Node("id");
         // Add varNode as child of F
         factorNode->children.push_back(varNode);
+
+        // Update currentTok
+        updateCurrentTok;
     }
 
     // Case: Factor is true
@@ -187,6 +197,9 @@ Node* PredParser::Factor() {
         Node* trueNode = new Node("true");
         // Add trueNode as child of F
         factorNode->children.push_back(trueNode);
+
+        // Update currentTok
+        updateCurrentTok;
     }
 
     // Case: Factor is false
@@ -195,50 +208,52 @@ Node* PredParser::Factor() {
         Node* falseNode = new Node("false");
         // Add falseNode as child of F
         factorNode->children.push_back(falseNode);
+
+        // Update currentTok
+        updateCurrentTok;
     }
 
-    // Case: Factor is (Exp)
-    // Ensure currentTok is (
-    else if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
-        // Note: Need to be careful when I lookahead if I do so after all these ifs.
-        // Create new node for ( for F
-        Node* leftParen = new Node("(");
-        // Add leftParen as child of F
-        factorNode->children.push_back(leftParen);
+    // ** uncomment after implementing + testing exp **
 
-        // Look ahead; Update currentTok
-        lookahead++;
-        currentTok = lookahead*;
+    // // Case: Factor is (Exp)
+    // // Ensure currentTok is (
+    // else if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
+    //     // Note: Need to be careful when I lookahead if I do so after all these ifs.
+    //     // Create new node for ( for F
+    //     Node* leftParen = new Node("(");
+    //     // Add leftParen as child of F
+    //     factorNode->children.push_back(leftParen);
 
-        // Now we call Expr()
-        // Note: so we should have F->(E..., correct?
+    //     // Update currentTok
+    //     updateCurrentTok;
+
+    //     // Now we call Expr()
+    //     // Note: so we should have F->(E..., correct?
         
-        //return Expr();
-        // wait, the above line is probably wrong. need to do this: (?)
-        Node* expNode = Exp();
-        // after this, we should be done parsing Expr
-        // Case: Ensure currentTok is )
-        if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
-            // Look ahead; Update currentTok
-            // Note: we will no longer use currentTok in this scope - unneeded to update it? good practice to do so regardless?
-            lookahead++;
-            currentTok = lookahead*;
+    //     //return Expr();
+    //     // wait, the above line is probably wrong. need to do this: (?)
+    //     Node* expNode = Exp();
+    //     // after this, we should be done parsing Expr
+    //     // Case: Ensure currentTok is )
+    //     if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
+    //        // Update currentTok
+    //        updateCurrentTok;
 
-            // see line 217, 218. if those are correct, we need to add that as a child of F
-            factorNode->children.push_back(expNode);
+    //         // see line 217, 218. if those are correct, we need to add that as a child of F
+    //         factorNode->children.push_back(expNode);
 
-            // Create new node for ) for F
-            Node* rightParen = new Node("(");
-            // Add leftParen as child of F
-            factorNode->children.push_back(rightParen);
-        }
+    //         // Create new node for ) for F
+    //         Node* rightParen = new Node(")");
+    //         // Add leftParen as child of F
+    //         factorNode->children.push_back(rightParen);
+    //     }
 
-        // Case: Missing closing paren
-        // Note: Or maybe expr is bad? Probably not - the error would be in there (once I implent it), right?
-        else {
-            std::cout << "Error: Missing ), or maybe Expr is bad in Factor.";
-        }
-    }
+    //     // Case: Missing closing paren
+    //     // Note: Or maybe expr is bad? Probably not - the error would be in there (once I implent it), right?
+    //     else {
+    //         std::cout << "Error: Missing ), or maybe Expr is bad in Factor.";
+    //     }
+    // }
     // Case: Invalid factor inputted
     else {
         std::cout << "Error: Invalid factor inputted for Factor.";
