@@ -77,7 +77,8 @@ class Word : public Token{
             Word* downcast = dynamic_cast<Word*>(&other);
             if(downcast){
                 return lexeme == downcast->lexeme && tag == downcast->tag;
-            }else return false;
+            }
+            else return false;
         }
 };
 

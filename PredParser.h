@@ -12,6 +12,10 @@ Designing a simple predictive parser for arithmetic, following Chap 2 of the Dra
 
 class PredParser {
     public:
+        ParseTree pt;
+        vector<Token*> toks;
+        vector<Token*>::iterator lookahead;
+        Token* currentTok;
         PredParser();
         PredParser(std::vector<Token*> &input_toks);
         void updateCurrentTok();
@@ -25,11 +29,6 @@ class PredParser {
         Node* Term();
         Node* Mul();
         Node* Factor();
-    
-    private:
-        ParseTree pt;
-        std::vector<Token*> toks;
-        std::vector<Token*>:iterator lookahead;
 };
 
 #endif

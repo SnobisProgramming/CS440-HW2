@@ -79,7 +79,7 @@ class ParseTree{
         root = new_tree;
       }else root = nullptr;
     }
-    ParseTree& operator=(const ParseTree& other){
+    ParseTree operator=(const ParseTree& other){
       ParseTree new_pt;
 
       if(other.root){
