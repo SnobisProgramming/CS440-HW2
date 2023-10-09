@@ -33,10 +33,17 @@ void PredParser::print() {
 // from Dr. Shallue
 // Does a top down parse
 void PredParser::top_down_parse() {
-    // create root
-    Node* newNode = Stmt();
+    // set up root
+    Node *new_tree = new Node("start");
+    
+    Node *child2 = Factor();
+    Node *child1 = Mul();
+    // // fill in code
+    new_tree->children.push_back(child1);
+    new_tree->children.push_back(child2);
 
-    pt.root = newNode;
+  
+    pt.root = new_tree;
 }
 
 // Helper function to update currentTok.

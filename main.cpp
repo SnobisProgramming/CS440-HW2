@@ -8,8 +8,8 @@ Andrew Shallue, Fall 2023
 
 #include "Token.h"
 #include "Node.h"
-#include "PredParser.h"
-#include "PredParser.cpp"
+#include "PredParser2.h"
+#include "PredParser2.cpp"
 
 using namespace std;
 
@@ -17,38 +17,43 @@ int main(){
 
     cout << "Hello World\n";
 
-    // create a token list for 5 * 3
-    vector<Token*> toks0;
-    toks0.push_back(new Num(5));
-    toks0.push_back(new Arithop("*"));
-    toks0.push_back(new Num(3));
+    // // create a token list for 5 * 3
+    // vector<Token*> toks0;
+    // toks0.push_back(new Num(5));
+    // toks0.push_back(new Arithop("*"));
+    // toks0.push_back(new Num(3));
     
-    cout << "Toks0: ";
-    for(long i = 0; i < toks0.size(); i++){
-        toks0.at(i)->print();
+    // cout << "Toks0: ";
+    // for(long i = 0; i < toks0.size(); i++){
+    //     toks0.at(i)->print();
+    //     cout << " ";
+    // }
+    // cout << "\n";
+
+    // PredParser pp = PredParser(toks0);
+    // pp.top_down_parse();
+    // pp.print();
+    // cout << "\n";
+
+    //create a token list for 5 + 2 * 3
+    vector<Token*> toks1;
+    toks1.push_back(new Num(5));
+    toks1.push_back(new Arithop("+"));
+    toks1.push_back(new Num(2));
+    toks1.push_back(new Arithop("*"));
+    toks1.push_back(new Num(3));
+
+    cout << "Toks1: ";
+    for(long i = 0; i < toks1.size(); i++){
+        toks1.at(i)->print();
         cout << " ";
     }
     cout << "\n";
 
-    PredParser pp = PredParser(toks0);
+    PredParser pp = PredParser(toks1);
     pp.top_down_parse();
     pp.print();
     cout << "\n";
-
-    // // create a token list for 5 + 2 * 3
-    // vector<Token*> toks1;
-    // toks1.push_back(new Num(5));
-    // toks1.push_back(new Arithop("+"));
-    // toks1.push_back(new Num(2));
-    // toks1.push_back(new Arithop("*"));
-    // toks1.push_back(new Num(3));
-
-    // cout << "Toks1: ";
-    // for(long i = 0; i < toks1.size(); i++){
-    //     toks1.at(i)->print();
-    //     cout << " ";
-    // }
-    // cout << "\n";
 
     // // now test predictive parsing
     // PredParser pp1 = PredParser(toks1);
