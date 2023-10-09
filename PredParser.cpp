@@ -37,14 +37,14 @@ void PredParser::print() {
 // Call Stmt()?
 void PredParser::top_down_parse() {
     // create root
-    Node* newNode = new Node("start");
+    Node* newNode = Stmt();
 
     pt.root = newNode;
 }
 
 // Helper function to update currentTok.
 // Also helps avoiding scope issues (where we'd have to define currentTok multiple times below)
-// Choosing to use this at the end of each function except for ifStmt
+// Choosing to use this at the end of each function except for outputTree
 void PredParser::updateCurrentTok() {
     if (lookahead != toks.end()) {
         // With this order, the function can be called with currenTok being at the start.
@@ -52,25 +52,14 @@ void PredParser::updateCurrentTok() {
         lookahead++;
     }
     else {
-        std::cerr << "Error: Tried to iterate at end of tok list";
+        std::cout << "Error: Tried to iterate at end of tok list";
     }
 }
-// match is for leaf tokens
-// check if lookahead not at end, check if lookahead is correct token, if so create leaf and push ahead
-// never mind, not implemented.  I would need a million cases to cast appropriate token depending on tag
-// Is there a way to detect the type of an object passed?
-//Node* match(int t, string s);
-
-// if there is a way (polymorphic equal?), we could instead do:
-//Node* match()
-
-// if not, then function probably should be
-//Node* match(int t, string s, string type)?
 
 // Stmt checks for if.  If not found, go with Rel production instead
 Node* PredParser::Stmt() {
     // Create parent node for the statement
-    Node* output_tree = new Node("S");
+    Node* outputTree = new Node("S");
 
     // Initialize currentTok at beginning
     // Should be Rel or if
@@ -79,19 +68,21 @@ Node* PredParser::Stmt() {
         // Check if lookahead token is "if"
         if (currentTok->tag == IF) {
             // Create new node for the if statement
-            Node* ifStmt = new Node("if");
+            Node* ifNode = new Node("if");
 
-            // Update currentTok
-            // Should be (
+            // Add ifNode as child of outputTree
+            outputTree->children.push_back(outputTree);
+
+
+            // Update currentTok, Should be (
             updateCurrentTok();
 
-            // According to our grammar, (Rel) is next
-            // Thus, check for (
+            // According to our grammar, (Rel) is next, check for (
             // Due to a discussion on polymorphism, I must cast Punct* and check for symbol. Also ensuring tag is PUNCT to be fully sure.
             if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == "(") {
-                // Create new node for ( for ifStmt
+                // Create new node for ( for outputTree
                 Node* leftParen = new Node("(");
-                ifStmt->children.push_back(leftParen);
+                outputTree->children.push_back(leftParen);
 
                 // Update currentTok, should be Rel
                 updateCurrentTok();
@@ -100,7 +91,7 @@ Node* PredParser::Stmt() {
                 Node* relNode = Rel();
 
                 // Rel is a child of an if statement
-                ifStmt->children.push_back(relNode);
+                outputTree->children.push_back(relNode);
 
                 // Update currentTok, should be )
                 updateCurrentTok();
@@ -109,9 +100,9 @@ Node* PredParser::Stmt() {
                 // Thus, check for )
                 // Due to a discussion on polymorphism, I must cast Punct* and check for symbol. Also ensuring tag is PUNCT to be fully sure.
                 if (currentTok->tag == PUNCT && dynamic_cast<Punct*>(currentTok)->symbol == ")") {
-                // Create new node for ) for ifStmt
+                // Create new node for ) for outputTree
                 Node* rightParen = new Node(")");
-                ifStmt->children.push_back(rightParen);
+                outputTree->children.push_back(rightParen);
                 
                 // Update currentTok, should be else
                 updateCurrentTok();
@@ -120,7 +111,7 @@ Node* PredParser::Stmt() {
                 Node* thenStmt = Stmt();
 
                 // (then) Stmt is a child of an if statement
-                ifStmt->children.push_back(thenStmt);
+                outputTree->children.push_back(thenStmt);
 
                 // Think this is old code, keeping around for testing
                 // // Check for else
@@ -129,7 +120,7 @@ Node* PredParser::Stmt() {
                 //         Node* elseStmt = Stmt();
 
                 //         // (else) Stmt is a child of an if statement
-                //         ifStmt->children.push_back(elseStmt)
+                //         outputTree->children.push_back(elseStmt)
 
                 //         // Update currentTok, should be Stmt
                 //         updateCurrentTok();
@@ -138,18 +129,18 @@ Node* PredParser::Stmt() {
                 //     }
                 // }
 
-                    // Finished parsing ifStmt
-                    return ifStmt;
+                    // Finished parsing outputTree
+                    return outputTree;
             
                 }
                 // case: ) missing
                 else {
-                    std::cout << "Error: Missing ) in ifStmt";
+                    std::cout << "Error: Missing ) in Stmt";
                 }
             }
                 // case: ( missing
                 else {
-                    std::cout << "Error: Missing ( in ifStmt";
+                    std::cout << "Error: Missing ( in Stmt";
             }
         }
     // Otherwise, currentTok is not "if", thus return Rel
@@ -173,7 +164,44 @@ Node* PredParser::Exp() {
 
 // Three choices for Add, which depends on the lookahead token
 Node* PredParser::Add() {
-    return nullptr;
+    // Create parent node for Add
+    Node* addNode = new Node("A");
+
+    // Update currentTok, should be +, - or epsilon
+    updateCurrentTok();
+
+    // Case: Addition, subtraction
+    // These two cases would have the same output, so we can make one if statement for them
+    if (currentTok->tag == PUNCT && (dynamic_cast<Arithop*>(currentTok)->op == "+" || dynamic_cast<Arithop*>(currentTok)->op == "")) {
+        // Create new node for operator
+        Node* opNode = new Node(dynamic_cast<Arithop*>(currentTok)->op);
+
+        // Add opNode as a child of A
+        addNode->children.push_back(opNode);
+
+        // Update currentTok, should be Term
+        updateCurrentTok();
+
+        // Now parse factor
+        Node* termNode = Term();
+
+        // Add Factor node as child of M
+        addNode->children.push_back(termNode);
+
+        // Update currentTok, should be Add
+        updateCurrentTok();
+
+        // Recursively parse Add as our grammar states
+        // using nextMulNode as the var name to indicate it's the Mul inside the grammar
+        Node* nextAddNode = Add();
+
+        // Add nextMulNode as a child of current mulNode
+        addNode->children.push_back(nextAddNode);
+    }
+
+    // Finished parsing Mul
+    // Note: If epsilon case, the above if won't be met, simply returning "M". Correct implementation?
+    return addNode;
 }
 
 // If Term is current nonterminal, only one production to choose, namely Factor Mul
