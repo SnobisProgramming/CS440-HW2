@@ -32,28 +32,15 @@ void PredParser::print() {
 // for the activity we start at Mul, but the full grammar would require starting
 // at Exp
 void PredParser::top_down_parse() {
-    // set up root
-    //Node *new_tree = new Node("start");
     // create root
     Node *new_tree = Stmt();
-
-    
-    // Node *child1 = Factor();
-    // Node *child2 = Mul();
-    // Node *child3 = Term();
-    // Node *child4 = Add();
-    // // fill in code
-    // new_tree->children.push_back(child1);
-    // new_tree->children.push_back(child2);
-    // new_tree->children.push_back(child3);
-    // new_tree->children.push_back(child4);
-
   
     pt.root = new_tree;
 }
 
 
 Node *PredParser::Stmt() {
+
     // grammar: rel | if ...
     Node *new_tree = new Node("S");
     // case: children is rel
@@ -65,6 +52,7 @@ Node *PredParser::Stmt() {
 }
 
 Node *PredParser::Rel() {
+
     // grammar: exp boolop
     Node *new_tree = new Node("R");
 
@@ -78,18 +66,45 @@ Node *PredParser::Rel() {
 }
 
 Node *PredParser::Boolop() {
-    // grammar: bepis | bepis | ep
+
+    // grammar: < Exp | > Exp | epsilon
     Node *new_tree = new Node("B");
     // if lookahead at the end, simply create epsilon tree
     if (lookahead == toks.end()) {
         new_tree->children.push_back(new Node("ep"));
     } else {
-        std::cout << "you done fucked up";
+
+        Token *current_tok = *lookahead;
+
+        // check token for RELOP and "<" or ">"
+        if (current_tok->tag == RELOP &&
+            dynamic_cast<Relop *>(current_tok)->op == "<"|| dynamic_cast<Relop *>(current_tok)->op == ">") {
+            // the three children are a leaf for *, tree for F, and tree for M
+            if (dynamic_cast<Relop *>(current_tok)->op == "<") {
+                Node *c1 = new Node("<");
+                new_tree->children.push_back(c1);
+            } else {
+                Node *c1 = new Node(">");
+                new_tree->children.push_back(c1);
+            }
+            
+            lookahead++;
+
+            Node *c2 = Exp();
+            new_tree->children.push_back(c2);
+            
+
+        // } else if (current_tok->tag != RELOP) { // probably bad way to handle this, but it works.
+        //     new_tree->children.push_back(new Node("ep"));}
+        } else {
+        cout << "Parse error in Boolop\n";
+        }
     }
     return new_tree;
 }
 
 Node *PredParser::Exp() {
+
     // create new tree with internal label T and retrieve current token
     Node *new_tree = new Node("E");
     
@@ -115,32 +130,37 @@ Node *PredParser::Add() {
         Token *current_tok = *lookahead;
 
         // check token for ARITHOP and "*" or "/"
-        if (current_tok->tag == ARITHOP &&
-            dynamic_cast<Arithop *>(current_tok)->op == "+"|| dynamic_cast<Arithop *>(current_tok)->op == "-") {
-        // the three children are a leaf for *, tree for F, and tree for M
-        if (dynamic_cast<Arithop *>(current_tok)->op == "-") {
-            Node *c1 = new Node("*");
-            new_tree->children.push_back(c1);
+        if (current_tok->tag == ARITHOP) {
+            //dynamic_cast<Arithop *>(current_tok)->op == "+"|| dynamic_cast<Arithop *>(current_tok)->op == "-") {
+            // the three children are a leaf for *, tree for F, and tree for M
+            if (dynamic_cast<Arithop *>(current_tok)->op == "+") {
+                Node *c1 = new Node("+");
+                new_tree->children.push_back(c1);
+            } else if (dynamic_cast<Arithop *>(current_tok)->op == "-") {
+                Node *c1 = new Node("-");
+                new_tree->children.push_back(c1);
+            } else {
+                new_tree->children.push_back(new Node("ep"));
+                //lookahead++;
+                return new_tree;
+            }
+            
+            lookahead++;
+
+            Node *c2 = Term();
+            Node *c3 = Add();
+            new_tree->children.push_back(c2);
+            new_tree->children.push_back(c3);
+
         } else {
-            Node *c1 = new Node("+");
-            new_tree->children.push_back(c1);
-        }
-
-        lookahead++;
-
-        Node *c2 = Factor();
-        Node *c3 = Mul();
-        new_tree->children.push_back(c2);
-        new_tree->children.push_back(c3);
-
-        } else {
-        cout << "Parse error in Mul\n";
+            new_tree->children.push_back(new Node("ep"));
         }
     }
     return new_tree;
 }
 
 Node *PredParser::Term() {
+
     // create new tree with internal label T and retrieve current token
     Node *new_tree = new Node("T");
     
@@ -166,31 +186,31 @@ Node *PredParser::Mul() {
     } else {
 
         Token *current_tok = *lookahead;
-
         // check token for ARITHOP and "*" or "/"
-        if (current_tok->tag == ARITHOP &&
-            dynamic_cast<Arithop *>(current_tok)->op == "*"|| dynamic_cast<Arithop *>(current_tok)->op == "/") {
+        if (current_tok->tag == ARITHOP) {
+            //dynamic_cast<Arithop *>(current_tok)->op == "*"|| dynamic_cast<Arithop *>(current_tok)->op == "/") {
             // the three children are a leaf for *, tree for F, and tree for M
             if (dynamic_cast<Arithop *>(current_tok)->op == "*") {
                 Node *c1 = new Node("*");
                 new_tree->children.push_back(c1);
-            } else {
+            } else if (dynamic_cast<Arithop *>(current_tok)->op == "/"){
                 Node *c1 = new Node("/");
                 new_tree->children.push_back(c1);
+            } else {
+                new_tree->children.push_back(new Node("ep"));
+                //lookahead++;
+                return new_tree;
             }
-            
             lookahead++;
 
             Node *c2 = Factor();
             Node *c3 = Mul();
             new_tree->children.push_back(c2);
             new_tree->children.push_back(c3);
-
-        } else if (current_tok->tag == ARITHOP) { // probably bad way to handle this
+        
+        } else  { 
             new_tree->children.push_back(new Node("ep"));
-        } else {
-        cout << "Parse error in Mul\n";
-        }
+        } 
     }
     return new_tree;
 }
@@ -198,43 +218,59 @@ Node *PredParser::Mul() {
 // If lookahead is num or var, return leaf node, otherwise return tree
 // corresponding to (Exp)
 Node *PredParser::Factor() {
-
   Node *new_tree = new Node("F");
 
   // if we are at the end of the token list there must be an error
   if (lookahead == toks.end()) {
     cout << "Error in parsing, Factor needs a token but none exist\n";
   } else {
+        // retrieve token pointer from lookahead
+        Token *current_tok = *lookahead;
+        
+        // if NUM is the current token, create leaf node "num"
+        if (current_tok->tag == NUM) {
+            Node *new_leaf = new Node("num");
+            new_tree->children.push_back(new_leaf);
+            lookahead++;
+        } 
+        else if (current_tok->tag == ID) {
+            Node *new_leaf = new Node("id");
+            new_tree->children.push_back(new_leaf);
+            lookahead++;
+        }
+        else if (current_tok->tag == TRUE) { 
+            Node *new_leaf = new Node("true");
+            new_tree->children.push_back(new_leaf);
+            lookahead++;
+        }
+        else if (current_tok->tag == FALSE) { 
+            Node *new_leaf = new Node("false");
+            new_tree->children.push_back(new_leaf);
+            lookahead++;
+        } else if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == "(") { 
+            // Ensure current_tok is (
+            // Create new node for ( for F
+            
+            Node *c1 = new Node("(");
+            lookahead++;
+            Node *c2 = Exp();
+            new_tree->children.push_back(c1);
+            new_tree->children.push_back(c2);
 
-    // retrieve token pointer from lookahead
-    Token *current_tok = *lookahead;
+            if (lookahead != toks.end()) {
+                current_tok = *lookahead;
+            }
 
-    // if NUM is the current token, create leaf node "num"
-    if (current_tok->tag == NUM) {
-        Node *new_leaf = new Node("num");
-        new_tree->children.push_back(new_leaf);
-        lookahead++;
-    } 
-    else if (current_tok->tag == ID) {
-        Node *new_leaf = new Node("id");
-        new_tree->children.push_back(new_leaf);
-        lookahead++;
-    }
-    else if (current_tok->tag == TRUE) { 
-        Node *new_leaf = new Node("true");
-        new_tree->children.push_back(new_leaf);
-        lookahead++;
-    }
-    else if (current_tok->tag == FALSE) { 
-        Node *new_leaf = new Node("false");
-        new_tree->children.push_back(new_leaf);
-        lookahead++;
-    }
-    // do (exp) case here
-    else {
-        cout << "Parse error in Factor\n";
-    }
-  }
+            if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == ")") {
+                Node *c3 = new Node(")");
+                lookahead++;
+                new_tree->children.push_back(c3);
+            } else {
+            // Case: Invalid factor inputted
+            std::cout << "Error: Invalid factor inputted for Factor.";
+            }   
+        }
+  }   
   return new_tree;
 }
 
