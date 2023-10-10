@@ -38,12 +38,14 @@ void PredParser::top_down_parse() {
     pt.root = new_tree;
 }
 
-
+// Stmt -> Rel | if ( Rel ) Stmt else Stmt 
 Node *PredParser::Stmt() {
-
-    // grammar: rel | if ...
+    // create new tree with internal label S
     Node *new_tree = new Node("S");
-    // case: children is rel
+
+    // if ...
+
+    // case: rel
     Node *c1 = Rel();
     new_tree->children.push_back(c1);
 
@@ -51,9 +53,9 @@ Node *PredParser::Stmt() {
     
 }
 
+// Rel -> Exp Boolop
 Node *PredParser::Rel() {
-
-    // grammar: exp boolop
+    // create new tree with internal label R
     Node *new_tree = new Node("R");
 
     // children is exp and boolop
@@ -65,14 +67,15 @@ Node *PredParser::Rel() {
     return new_tree;
 }
 
+// Boolop -> < Exp | > Exp | epsilon
 Node *PredParser::Boolop() {
-
-    // grammar: < Exp | > Exp | epsilon
+    // create new tree with internal label B
     Node *new_tree = new Node("B");
+
     // if lookahead at the end, simply create epsilon tree
     if (lookahead == toks.end()) {
         new_tree->children.push_back(new Node("ep"));
-    } else {
+    } else { // case: not epsilon
 
         Token *current_tok = *lookahead;
 
@@ -93,9 +96,6 @@ Node *PredParser::Boolop() {
             Node *c2 = Exp();
             new_tree->children.push_back(c2);
             
-
-        // } else if (current_tok->tag != RELOP) { // probably bad way to handle this, but it works.
-        //     new_tree->children.push_back(new Node("ep"));}
         } else {
         cout << "Parse error in Boolop\n";
         }
@@ -103,9 +103,9 @@ Node *PredParser::Boolop() {
     return new_tree;
 }
 
+// Exp -> Term Add
 Node *PredParser::Exp() {
-
-    // create new tree with internal label T and retrieve current token
+    // create new tree with internal label T
     Node *new_tree = new Node("E");
     
     // two children = tree for T and A
@@ -117,21 +117,21 @@ Node *PredParser::Exp() {
     return new_tree;
 }
 
+// essentially same as mul
+// Add -> + Term Add | - Term Add | epsilon
 Node *PredParser::Add() {
-
-    // create new tree with internal label M and retrieve current token
+    // create new tree with internal label M
     Node *new_tree = new Node("A");
 
     // if lookahead at the end, simply create epsilon tree
     if (lookahead == toks.end()) {
         new_tree->children.push_back(new Node("ep"));
     } else {
-
+        // retrieve current token
         Token *current_tok = *lookahead;
 
         // check token for ARITHOP and "*" or "/"
         if (current_tok->tag == ARITHOP) {
-            //dynamic_cast<Arithop *>(current_tok)->op == "+"|| dynamic_cast<Arithop *>(current_tok)->op == "-") {
             // the three children are a leaf for *, tree for F, and tree for M
             if (dynamic_cast<Arithop *>(current_tok)->op == "+") {
                 Node *c1 = new Node("+");
@@ -139,7 +139,7 @@ Node *PredParser::Add() {
             } else if (dynamic_cast<Arithop *>(current_tok)->op == "-") {
                 Node *c1 = new Node("-");
                 new_tree->children.push_back(c1);
-            } else {
+            } else { // otherwise epsilon (case: addition arithop)
                 new_tree->children.push_back(new Node("ep"));
                 //lookahead++;
                 return new_tree;
@@ -152,16 +152,16 @@ Node *PredParser::Add() {
             new_tree->children.push_back(c2);
             new_tree->children.push_back(c3);
 
-        } else {
+        } else { // otherwise epsilon (case: not arithop)
             new_tree->children.push_back(new Node("ep"));
         }
     }
     return new_tree;
 }
 
+// Term -> Factor Mul
 Node *PredParser::Term() {
-
-    // create new tree with internal label T and retrieve current token
+    // create new tree with internal label T
     Node *new_tree = new Node("T");
     
     // two children = tree for F and M
@@ -173,22 +173,20 @@ Node *PredParser::Term() {
     return new_tree;
 }
 
-// For Mul, apply * Factor Mul or / Factor Mul depending on lookahead, o/w do
-// epsilon
+// For Mul, apply * Factor Mul or / Factor Mul depending on lookahead, o/w do epsilon
+// Mul -> * Factor Mul | / Factor Mul | epsilon
 Node *PredParser::Mul() {
-
-    // create new tree with internal label M and retrieve current token
+    // create new tree with internal label M
     Node *new_tree = new Node("M");
 
     // if lookahead at the end, simply create epsilon tree
     if (lookahead == toks.end()) {
         new_tree->children.push_back(new Node("ep"));
     } else {
-
+        // retrieve current token
         Token *current_tok = *lookahead;
         // check token for ARITHOP and "*" or "/"
         if (current_tok->tag == ARITHOP) {
-            //dynamic_cast<Arithop *>(current_tok)->op == "*"|| dynamic_cast<Arithop *>(current_tok)->op == "/") {
             // the three children are a leaf for *, tree for F, and tree for M
             if (dynamic_cast<Arithop *>(current_tok)->op == "*") {
                 Node *c1 = new Node("*");
@@ -196,7 +194,7 @@ Node *PredParser::Mul() {
             } else if (dynamic_cast<Arithop *>(current_tok)->op == "/"){
                 Node *c1 = new Node("/");
                 new_tree->children.push_back(c1);
-            } else {
+            } else { // otherwise epsilon (case: addition arithop)
                 new_tree->children.push_back(new Node("ep"));
                 //lookahead++;
                 return new_tree;
@@ -208,7 +206,7 @@ Node *PredParser::Mul() {
             new_tree->children.push_back(c2);
             new_tree->children.push_back(c3);
         
-        } else  { 
+        } else  { // otherwise epsilon (case: not arithop)
             new_tree->children.push_back(new Node("ep"));
         } 
     }
@@ -216,7 +214,7 @@ Node *PredParser::Mul() {
 }
 
 // If lookahead is num or var, return leaf node, otherwise return tree
-// corresponding to (Exp)
+// Factor -> num | var | true | false | ( Exp )
 Node *PredParser::Factor() {
   Node *new_tree = new Node("F");
 
@@ -227,7 +225,7 @@ Node *PredParser::Factor() {
         // retrieve token pointer from lookahead
         Token *current_tok = *lookahead;
         
-        // if NUM is the current token, create leaf node "num"
+        // if NUM is the current token, create leaf node "num" and so on for id, true, false.
         if (current_tok->tag == NUM) {
             Node *new_leaf = new Node("num");
             new_tree->children.push_back(new_leaf);
@@ -247,20 +245,24 @@ Node *PredParser::Factor() {
             Node *new_leaf = new Node("false");
             new_tree->children.push_back(new_leaf);
             lookahead++;
-        } else if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == "(") { 
-            // Ensure current_tok is (
+        } else if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == "(") { // special case: ( Exp )
+
             // Create new node for ( for F
-            
             Node *c1 = new Node("(");
+            // Lookahead now (order is important)
             lookahead++;
+
+            // Now make Exp child and push children
             Node *c2 = Exp();
             new_tree->children.push_back(c1);
             new_tree->children.push_back(c2);
 
+            // check again
             if (lookahead != toks.end()) {
                 current_tok = *lookahead;
             }
 
+            // now we can add )
             if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == ")") {
                 Node *c3 = new Node(")");
                 lookahead++;
