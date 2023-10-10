@@ -3,6 +3,8 @@ C++ Parser, Andrew Shallue, CS 440, Fall 2023
 Designing a simple predictive parser for arithmetic, following Chap 2 of the Dragon Book
 */
 
+// Note: Grade PredParser2. Original PredParser kept for historical purposes - see push history.
+
 #ifndef PREDPARSER_H
 #define PREDPARSER_H
 

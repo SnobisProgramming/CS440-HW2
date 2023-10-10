@@ -2,6 +2,7 @@
 PredParser.cpp
 */
 
+// Note: Grade PredParser2. Original PredParser kept for historical purposes - see push history.
 
 #include "PredParser.h"
 #include "Node.h"
@@ -111,20 +112,20 @@ Node* PredParser::Stmt() {
                 outputTree->children.push_back(thenStmt);
 
                 // Think this is old code, keeping around for testing
-                // // Check for else
-                //     if (currentTok->tag == ELSE) {
-                //         // We should have Stmt; parse Stmt
-                //         Node* elseStmt = Stmt();
+                // Check for else
+                    if (currentTok->tag == ELSE) {
+                        // We should have Stmt; parse Stmt
+                        Node* elseStmt = Stmt();
 
-                //         // (else) Stmt is a child of an if statement
-                //         outputTree->children.push_back(elseStmt)
+                        // (else) Stmt is a child of an if statement
+                        outputTree->children.push_back(elseStmt)
 
-                //         // Update currentTok, should be Stmt
-                //         updateCurrentTok();
-                //     else {
-                //         std::cout << "Error: Missing Else in Stmt";
-                //     }
-                // }
+                        // Update currentTok, should be Stmt
+                        updateCurrentTok();
+                    else {
+                        std::cout << "Error: Missing Else in Stmt";
+                    }
+                }
 
                     // Finished parsing outputTree
                     return outputTree;

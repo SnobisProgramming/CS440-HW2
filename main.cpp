@@ -4,6 +4,8 @@ Using simple top-down strategy.
 Andrew Shallue, Fall 2023
 */
 
+// Note: Grade PredParser2. Original PredParser kept for historical purposes - see push history.
+
 #include <iostream>
 
 #include "Token.h"
