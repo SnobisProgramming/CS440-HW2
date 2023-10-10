@@ -2,6 +2,7 @@
 PredParser.cpp
 */
 
+// Note: Grade this file. Original PredParser kept for historical purposes - see push history.
 
 #include "PredParser2.h"
 #include "Node.h"
@@ -22,15 +23,13 @@ PredParser::PredParser(vector<Token *> &input_toks) {
 
 // print calls print function on the ParseTree
 void PredParser::print() {
-  // cout << "PredParser print function, toks has size " << toks.size() << "
-  // lookahead pointed at " << (*lookahead)->tag << "\n";
+  // cout << "PredParser print function, toks has size " << toks.size() << "lookahead pointed at " << (*lookahead)->tag << "\n";
   pt.print();
   cout << "\n";
 }
 
 // parse function fills in pt based on tokens in toks
-// for the activity we start at Mul, but the full grammar would require starting
-// at Exp
+// for the activity we start at Mul, but the full grammar would require starting at Exp
 void PredParser::top_down_parse() {
     // create root
     Node *new_tree = Stmt();
@@ -42,13 +41,68 @@ void PredParser::top_down_parse() {
 Node *PredParser::Stmt() {
     // create new tree with internal label S
     Node *new_tree = new Node("S");
+    // if we are at the end of the token list there must be an error
+    if (lookahead == toks.end()) {
+        cout << "Error in parsing, Stmt needs a token but none exist\n";
+    } else {
+        // retrieve token pointer from lookahead
+        Token *current_tok = *lookahead;
+        // if IF is the current token, create children if ( Rel ) Stmt else Stmt
+        // In here, the code largely assumes this is all inputted correctly.
+        if (current_tok->tag == IF) {
+            Node *c1 = new Node("if");
+            new_tree->children.push_back(c1);
+            // look for open paren
+            lookahead++;
+            current_tok = *lookahead;
+            if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == "(") {
+                // Create new node for (
+                Node *c2 = new Node("(");
 
-    // if ...
+                // Lookahead now (order is important)
+                lookahead++;
 
-    // case: rel
-    Node *c1 = Rel();
-    new_tree->children.push_back(c1);
+                // Now make Rel child and push those children
+                Node *c3 = Rel();
+                new_tree->children.push_back(c2);
+                new_tree->children.push_back(c3);
 
+                current_tok = *lookahead;
+                
+                // now we can add )
+                if (current_tok->tag == PUNCT) {
+                    Node *c4 = new Node(")");
+                    new_tree->children.push_back(c4);
+                } else {
+                    // Case: Invalid factor inputted
+                    std::cout << "Error: Invalid Rel inputted for Stmt.";
+                }   
+                
+                // look past paren
+                lookahead++;
+                current_tok = *lookahead;
+
+                // Now call Stmt and push it
+                Node *c5 = Stmt();
+                new_tree->children.push_back(c5);
+ 
+                // Push else as we should be there
+                Node *c6 = new Node ("else");
+                new_tree->children.push_back(c6);
+                
+               
+                // last Stmt call, push it
+                Node *c7 = Stmt();
+                new_tree->children.push_back(c7);
+            }
+        } else {
+            // case: rel
+            Node *c1 = Rel();
+            new_tree->children.push_back(c1);
+            lookahead++;
+        }
+    }
+    
     return new_tree;
     
 }
@@ -80,8 +134,7 @@ Node *PredParser::Boolop() {
         Token *current_tok = *lookahead;
 
         // check token for RELOP and "<" or ">"
-        if (current_tok->tag == RELOP &&
-            dynamic_cast<Relop *>(current_tok)->op == "<"|| dynamic_cast<Relop *>(current_tok)->op == ">") {
+        if (current_tok->tag == RELOP) {
             // the three children are a leaf for *, tree for F, and tree for M
             if (dynamic_cast<Relop *>(current_tok)->op == "<") {
                 Node *c1 = new Node("<");
@@ -91,13 +144,14 @@ Node *PredParser::Boolop() {
                 new_tree->children.push_back(c1);
             }
             
+            // move past relop (< or >)
             lookahead++;
 
             Node *c2 = Exp();
             new_tree->children.push_back(c2);
             
-        } else {
-        cout << "Parse error in Boolop\n";
+        } else { // case: epsilon
+            new_tree->children.push_back(new Node("ep"));
         }
     }
     return new_tree;
@@ -145,6 +199,7 @@ Node *PredParser::Add() {
                 return new_tree;
             }
             
+            // move past arithop
             lookahead++;
 
             Node *c2 = Term();
@@ -220,11 +275,10 @@ Node *PredParser::Factor() {
 
   // if we are at the end of the token list there must be an error
   if (lookahead == toks.end()) {
-    cout << "Error in parsing, Factor needs a token but none exist\n";
+    cout << "\nError in parsing, Factor needs a token but none exist\n";
   } else {
         // retrieve token pointer from lookahead
         Token *current_tok = *lookahead;
-        
         // if NUM is the current token, create leaf node "num" and so on for id, true, false.
         if (current_tok->tag == NUM) {
             Node *new_leaf = new Node("num");
@@ -246,8 +300,7 @@ Node *PredParser::Factor() {
             new_tree->children.push_back(new_leaf);
             lookahead++;
         } else if (current_tok->tag == PUNCT && dynamic_cast<Punct*>(current_tok)->symbol == "(") { // special case: ( Exp )
-
-            // Create new node for ( for F
+            // Create new node for (
             Node *c1 = new Node("(");
             // Lookahead now (order is important)
             lookahead++;
@@ -269,7 +322,7 @@ Node *PredParser::Factor() {
                 new_tree->children.push_back(c3);
             } else {
             // Case: Invalid factor inputted
-            std::cout << "Error: Invalid factor inputted for Factor.";
+            std::cout << "Error: Invalid Factor inputted for Factor.";
             }   
         }
   }   
